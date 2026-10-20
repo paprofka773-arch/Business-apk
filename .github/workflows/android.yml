@@ -1,0 +1,55 @@
+github/workflows/android.yml
+name: Build Business APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build APK
+        run: |
+          if [ -f ./gradlew ]; then
+            chmod +x ./gradlew
+            ./gradlew assembleDebug
+          elif [ -f ./gradlew.bat ]; then
+            echo "Gradle wrapper is present but gradlew is missing."
+            exit 1
+          elif [ -f ./build.gradle ] || [ -f ./build.gradle.kts ]; then
+            gradle assembleDebug
+          else
+            echo "No Gradle build file found."
+            exit 1
+          fi
+
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Business-debug-apk
+          path: |
+            **/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
